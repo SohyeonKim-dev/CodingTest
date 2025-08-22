@@ -89,3 +89,5 @@ int main() {
     cout << "IMPOSSIBLE";
     return 0;
 }
+
+// 지훈과 불의 BFS를 분리해야 한다(?)
