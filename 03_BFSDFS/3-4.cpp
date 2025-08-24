@@ -10,16 +10,19 @@ using namespace std;
 
 int n, m;
 char board[1000][1000];
-int visited[1000][1000];
+int fire[1000][1000];
+int jihun[1000][1000];
 
 int dx[4] = {1, 0, -1, 0};
 int dy[4] = {0, 1, 0, -1};
 
-int min_count = 0;
-
 int main() {
     ios::sync_with_stdio(false);
     cin.tie(0);
+
+    // 배열 전부를 -1로 초기화
+    memset(fire, -1, sizeof(fire));
+    memset(jihun, -1, sizeof(jihun));
 
     // input
     cin >> n >> m ;
@@ -32,62 +35,55 @@ int main() {
         }
     }
 
-    // 초기값 
-    int jihun[2];
-    int fire[2];
+    queue<pair<int, int>> FQ;
+    queue<pair<int, int>> JQ;
 
     for (int i = 0; i < n; i++) {
         for (int j = 0; j < m; j++) {
-            if (board[i][j] == 'J') { jihun[0] = i; jihun[1] = j; visited[i][j] = 'J'; }
-            if (board[i][j] == 'F') { fire[0] = i; fire[1] = j; visited[i][j] = 'F'; }
+            if (board[i][j] == 'J') { JQ.push({i, j}); jihun[i][j] = 0;}
+            if (board[i][j] == 'F') { FQ.push({i, j}); fire[i][j] = 0;}
         }
     }
 
-    // 여러 시작점에서 bfs 진행 -> J 다음 F
-    queue<pair<int, int>> Q;
-    Q.push({jihun[0], jihun[1]}); 
-    Q.push({fire[0], fire[1]});
+    // 불과 지훈이 각자의 초를 기록하며 Q로 그래프 순회한다.
+    while(!FQ.empty()) {
+        pair<int, int> cur = FQ.front();
+        FQ.pop();
 
-    while(!Q.empty()) {
-        pair<int, int> cur = Q.front();
-        Q.pop(); 
-
-        // 4칸씩 진행
-        // J와 F를 구분하여 구현해야 될 것 같은데? 
         for (int dir = 0; dir < 4; dir++) {
             int tempx = cur.X + dx[dir];
             int tempy = cur.Y + dy[dir];
 
-            // 범위를 넘거나, 벽이라면 Pass (지훈, 불 공통)
-            if (board[cur.X][cur.Y] == '#') continue; 
+            if (tempx < 0 || tempx >= n || tempy < 0 || tempy >= m) continue;
+            if (board[tempx][tempy] == '#' || fire[tempx][tempy] != -1) continue;
+            
+            fire[tempx][tempy] = fire[cur.X][cur.Y] + 1;
+            FQ.push({tempx, tempy});
+        }
+    }
 
-            // 지금이 지훈이라면? 
-            if (board[cur.X][cur.Y] == 'J') {
-                if (board[tempx][tempy] == 'F' || board[tempx][tempy] == 'J') continue; // 불이 났거나, 재방문 -> pass
-                
-                if (tempx < 0 || tempx >= n || tempy < 0 || tempy >= m) {
-                    // 지훈이가 탈출 성공 
-                    cout << min_count ;
-                    return 0;
-                }
+    // 불의 시간 관계가 모두 기록된 상황 -> 지훈이와 비교하면서 길을 찾아보자. 
+    while(!JQ.empty()) {
+        pair<int, int> cur = JQ.front();
+        JQ.pop();
 
-                visited[tempx][tempy] = 'J';
-                Q.push({tempx, tempy});
-                min_count += 1; 
+        for (int dir = 0; dir < 4; dir++) {
+            int tempx = cur.X + dx[dir];
+            int tempy = cur.Y + dy[dir];
+
+            // 지훈이 탈출 성공 ! 
+            if (tempx < 0 || tempx >= n || tempy < 0 || tempy >= m) {
+                cout << jihun[cur.X][cur.Y] + 1;
+                return 0;
             }
 
-            if (board[cur.X][cur.Y] == 'F') {
-                if (tempx < 0 || tempx >= n || tempy < 0 || tempy >= m) continue;
-                if (board[tempx][tempy] == 'F') continue; // 내가 재방문 -> pass 
-                visited[tempx][tempy] = 'F';
-                Q.push({tempx, tempy});
-
-                // 언제 지훈이의 탈출 여부를 알 수 있지? -> 탈출 조건을 달리 해야함 
-            }
+            if (board[tempx][tempy] == '#' || jihun[tempx][tempy] != -1) continue;
+            if (fire[tempx][tempy] != -1 && jihun[cur.X][cur.Y] + 1 >= fire[tempx][tempy]) continue; // 불에 탐 
+            
+            jihun[tempx][tempy] = jihun[cur.X][cur.Y] + 1;
+            JQ.push({tempx, tempy});
         }
     }
     cout << "IMPOSSIBLE";
     return 0;
 }
-
-// 지훈과 불의 BFS를 분리해야 한다(?)
